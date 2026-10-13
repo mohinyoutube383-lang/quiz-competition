@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="bn">
 <head>
@@ -16,19 +15,23 @@
       background: linear-gradient(145deg,#10152b,#30205a);
     }
     .card {
-      max-width: 520px; margin: 35px auto;
+      max-width: 520px; margin: 20px auto;
       padding: 24px; border-radius: 20px;
       background: #1e2542;
       box-shadow: 0 12px 35px #0005;
     }
     h1 { color: #ffd166; text-align: center; }
     p { line-height: 1.7; }
-    input, button {
+    input, button, select {
       width: 100%; padding: 14px;
       margin-top: 12px; border-radius: 10px;
       font-size: 16px;
     }
-    input { border: 1px solid #69739b; }
+    input, select {
+      border: 1px solid #69739b;
+      background: white;
+      color: #17172b;
+    }
     button {
       border: 0; background: #ffd166;
       color: #201934; font-weight: bold;
@@ -39,71 +42,146 @@
       border: 1px solid #596487;
       text-align: left;
     }
-    .option:disabled { opacity: .8; }
+    .option:disabled { opacity: .9; }
     #status { color: #a9f5c7; }
     .small { color: #c7cbe0; font-size: 14px; }
+    .stat {
+      background: #303958;
+      padding: 12px;
+      border-radius: 10px;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
-  <main class="card">
-    <h1>🏆 Quiz Competition</h1>
-    <p class="small">সাধারণ জ্ঞান ও শিক্ষামূলক কুইজ</p>
+<main class="card">
+  <h1>🏆 Quiz Competition</h1>
+  <p class="small">সাধারণ জ্ঞান ও শিক্ষামূলক কুইজ</p>
 
-    <section id="home">
-      <p>তোমার নাম লিখে কুইজ শুরু করো।</p>
-      <input id="player" maxlength="30"
-             placeholder="তোমার নাম লিখো">
-      <button id="start">কুইজ শুরু করো</button>
-      <p class="small">মোট ৫টি প্রশ্ন · প্রতি সঠিক উত্তরে ১ নম্বর</p>
-    </section>
+  <section id="home">
+    <p>তোমার নাম লিখে কুইজ শুরু করো।</p>
+    <input id="player" maxlength="30"
+           placeholder="তোমার নাম লিখো">
 
-    <section id="game" hidden>
-      <p id="welcome"></p>
-      <p id="progress"></p>
-      <h3 id="question"></h3>
-      <div id="options"></div>
-      <p id="status" aria-live="polite"></p>
-      <button id="next" hidden>পরের প্রশ্ন</button>
-    </section>
+    <p>প্রতি কুইজে কতটি প্রশ্ন খেলবে?</p>
+    <select id="questionCount">
+      <option value="5">৫টি প্রশ্ন</option>
+      <option value="10">১০টি প্রশ্ন</option>
+      <option value="20" selected>২০টি প্রশ্ন</option>
+      <option value="50">৫০টি প্রশ্ন</option>
+      <option value="100">১০০টি প্রশ্ন</option>
+    </select>
 
-    <section id="result" hidden>
-      <h2>🎉 কুইজ শেষ!</h2>
-      <p id="score"></p>
-      <p id="message"></p>
-      <button id="again">আবার খেলো</button>
-    </section>
-  </main>
+    <p class="stat" id="bankInfo">প্রশ্ন তৈরি হচ্ছে...</p>
+    <button id="start">কুইজ শুরু করো</button>
+    <p class="small">প্রতি সঠিক উত্তরে ১ নম্বর।</p>
+  </section>
 
-  <script>
-    const questions = [
-      {
-        q: "বাংলাদেশের রাজধানী কোনটি?",
-        a: ["চট্টগ্রাম", "ঢাকা", "খুলনা", "রাজশাহী"],
-        c: 1
-      },
-      {
-        q: "বাংলাদেশের জাতীয় ফুল কোনটি?",
-        a: ["গোলাপ", "সূর্যমুখী", "শাপলা", "জবা"],
-        c: 2
-      },
-      {
-        q: "পৃথিবীর উপগ্রহ কোনটি?",
-        a: ["সূর্য", "চাঁদ", "মঙ্গল", "শুক্র"],
-        c: 1
-      },
-      {
-        q: "এক সপ্তাহে কত দিন?",
-        a: ["৫ দিন", "৬ দিন", "৭ দিন", "৮ দিন"],
-        c: 2
-      },
-      {
-        q: "পানির রাসায়নিক সংকেত কোনটি?",
-        a: ["CO2", "O2", "NaCl", "H2O"],
-        c: 3
-      }
-      {
+  <section id="game" hidden>
+    <p id="welcome"></p>
+    <p id="progress"></p>
+    <h3 id="question"></h3>
+    <div id="options"></div>
+    <p id="status" aria-live="polite"></p>
+    <button id="next" hidden>পরের প্রশ্ন</button>
+  </section>
+
+  <section id="result" hidden>
+    <h2>🎉 কুইজ শেষ!</h2>
+    <p id="score"></p>
+    <p id="message"></p>
+    <button id="again">আবার খেলো</button>
+  </section>
+</main>
+
+<script>
+const questions = [];
+
+// চারটি অপশন তৈরি
+function addQuestion(q, correct) {
+  const answers = new Set([correct]);
+
+  while (answers.size < 4) {
+    let wrong = correct +
+      (Math.floor(Math.random() * 19) - 9);
+
+    if (wrong < 0) wrong = correct + 10;
+    if (wrong !== correct) answers.add(wrong);
+  }
+
+  const a = [...answers].sort(() => Math.random() - 0.5);
+
+  questions.push({
+    q: q,
+    a: a.map(String),
+    c: a.indexOf(correct)
+  });
+}
+
+// ১. যোগ: ২৫০টি স্বতন্ত্র প্রশ্ন
+let count = 0;
+for (let x = 0; x <= 99 && count < 250; x++) {
+  for (let y = 0; y <= 99 && count < 250; y++) {
+    addQuestion(`${x} + ${y} = কত?`, x + y);
+    count++;
+  }
+}
+
+// ২. বিয়োগ: ২৫০টি স্বতন্ত্র প্রশ্ন
+count = 0;
+for (let x = 1; x <= 99 && count < 250; x++) {
+  for (let y = 0; y < x && count < 250; y++) {
+    addQuestion(`${x} - ${y} = কত?`, x - y);
+    count++;
+  }
+}
+
+// ৩. গুণ: ১৫০টি স্বতন্ত্র প্রশ্ন
+count = 0;
+for (let x = 2; x <= 20 && count < 150; x++) {
+  for (let y = 2; y <= 20 && count < 150; y++) {
+    addQuestion(`${x} × ${y} = কত?`, x * y);
+    count++;
+  }
+}
+
+// ৪. ভাগ: ৫০টি স্বতন্ত্র প্রশ্ন
+count = 0;
+for (let y = 2; y <= 10 && count < 50; y++) {
+  for (let x = 2; x <= 20 && count < 50; x++) {
+    addQuestion(`${x * y} ÷ ${y} = কত?`, x);
+    count++;
+  }
+}
+
+// ৫. সাধারণ জ্ঞানের নমুনা প্রশ্ন
 questions.push(
-  // বাংলাদেশ
+  {
+    q: "বাংলাদেশের রাজধানী কোনটি?",
+    a: ["চট্টগ্রাম", "ঢাকা", "খুলনা", "রাজশাহী"],
+    c: 1
+  },
+  {
+    q: "বাংলাদেশের জাতীয় ফুল কোনটি?",
+    a: ["গোলাপ", "সূর্যমুখী", "শাপলা", "জবা"],
+    c: 2
+  },
+  {
+    q: "পৃথিবীর প্রাকৃতিক উপগ্রহ কোনটি?",
+    a: ["সূর্য", "চাঁদ", "মঙ্গল", "শুক্র"],
+    c: 1
+  },
+  {
+    q: "এক সপ্তাহে কত দিন?",
+    a: ["৫ দিন", "৬ দিন", "৭ দিন", "৮ দিন"],
+    c: 2
+  },
+  {
+    q: "পানির রাসায়নিক সংকেত কোনটি?",
+    a: ["CO2", "O2", "NaCl", "H2O"],
+    c: 3
+  }
+);
   {q:"বাংলাদেশের জাতীয় ফল কোনটি?",a:["আম","কাঁঠাল","লিচু","জাম"],c:1},
   {q:"বাংলাদেশের জাতীয় পাখি কোনটি?",a:["কাক","দোয়েল","ময়না","টিয়া"],c:1},
   {q:"বাংলাদেশের জাতীয় পশু কোনটি?",a:["হাতি","হরিণ","রয়েল বেঙ্গল টাইগার","সিংহ"],c:2},
@@ -163,95 +241,136 @@ questions.push(
   {q:"এক বছরে সাধারণত কত মাস?",a:["১০","১১","১২","১৩"],c:2},
   {q:"ত্রিভুজের বাহু কয়টি?",a:["২","৩","৪","৫"],c:1}
 );
+const $ = id => document.getElementById(id);
 
+$("bankInfo").textContent =
+  "মোট " + questions.length + "টি প্রশ্নের ব্যাংক";
 
-    const $ = id => document.getElementById(id);
-    let name = "";
-    let index = 0;
-    let points = 0;
-    let answered = false;
+let name = "";
+let index = 0;
+let points = 0;
+let answered = false;
+let quizQuestions = [];
 
-    $("start").addEventListener("click", () => {
-      name = $("player").value.trim();
-      if (!name) {
-        alert("প্রথমে তোমার নাম লেখো!");
-        return;
-      }
-      index = 0;
-      points = 0;
-      $("home").hidden = true;
-      $("result").hidden = true;
-      $("game").hidden = false;
-      $("welcome").textContent = "শুভকামনা, " + name + "!";
-      showQuestion();
-    });
+$("start").addEventListener("click", () => {
+  name = $("player").value.trim();
 
-    function showQuestion() {
-      answered = false;
-      const item = questions[index];
-      $("progress").textContent =
-        "প্রশ্ন " + (index + 1) + " / " + questions.length;
-      $("question").textContent = item.q;
-      $("status").textContent = "";
-      $("next").hidden = true;
-      $("options").innerHTML = "";
+  if (!name) {
+    alert("প্রথমে তোমার নাম লেখো!");
+    return;
+  }
 
-      item.a.forEach((answer, i) => {
-        const btn = document.createElement("button");
-        btn.className = "option";
-        btn.textContent = answer;
-        btn.addEventListener("click", () => choose(i));
-        $("options").appendChild(btn);
-      });
+  const total = Number($("questionCount").value);
+
+  // প্রশ্নের ক্রম এলোমেলো
+  quizQuestions = [...questions]
+    .sort(() => Math.random() - 0.5)
+    .slice(0, total);
+
+  index = 0;
+  points = 0;
+
+  $("home").hidden = true;
+  $("result").hidden = true;
+  $("game").hidden = false;
+
+  $("welcome").textContent = "শুভকামনা, " + name + "!";
+  showQuestion();
+});
+
+function showQuestion() {
+  answered = false;
+
+  const item = quizQuestions[index];
+
+  $("progress").textContent =
+    "প্রশ্ন " + (index + 1) + " / " + quizQuestions.length;
+
+  $("question").textContent = item.q;
+  $("status").textContent = "";
+  $("next").hidden = true;
+  $("options").innerHTML = "";
+
+  item.a.forEach((answer, i) => {
+    const btn = document.createElement("button");
+    btn.className = "option";
+    btn.textContent = answer;
+
+    btn.addEventListener("click", () => choose(i));
+
+    $("options").appendChild(btn);
+  });
+}
+
+function choose(choice) {
+  if (answered) return;
+  answered = true;
+
+  const item = quizQuestions[index];
+  const buttons = $("options").querySelectorAll("button");
+
+  buttons.forEach((btn, i) => {
+    btn.disabled = true;
+
+    if (i === item.c) {
+      btn.style.borderColor = "#50e3a4";
+      btn.style.background = "#176747";
     }
 
-    function choose(choice) {
-      if (answered) return;
-      answered = true;
-      const item = questions[index];
-      const buttons = $("options").querySelectorAll("button");
-
-      buttons.forEach((btn, i) => {
-        btn.disabled = true;
-        if (i === item.c) btn.style.borderColor = "#50e3a4";
-      });
-
-      if (choice === item.c) {
-        points++;
-        $("status").textContent = "সঠিক উত্তর! ✅";
-      } else {
-        $("status").textContent =
-          "ভুল উত্তর। সঠিক উত্তর: " + item.a[item.c];
-      }
-
-      $("next").hidden = false;
-      $("next").textContent =
-        index === questions.length - 1 ? "ফলাফল দেখো" : "পরের প্রশ্ন";
+    if (i === choice && choice !== item.c) {
+      btn.style.borderColor = "#ff6868";
     }
+  });
 
-    $("next").addEventListener("click", () => {
-      if (!answered) return;
-      index++;
-      if (index < questions.length) {
-        showQuestion();
-      } else {
-        $("game").hidden = true;
-        $("result").hidden = false;
-        $("score").textContent =
-          name + ", তোমার নম্বর " + points + " / " + questions.length;
-        $("message").textContent =
-          points === questions.length ? "অসাধারণ! সব উত্তর সঠিক!" :
-          points >= 3 ? "ভালো চেষ্টা! আরও অনুশীলন করো।" :
-          "চেষ্টা চালিয়ে যাও, তুমি আরও ভালো করবে!";
-      }
-    });
+  if (choice === item.c) {
+    points++;
+    $("status").textContent = "সঠিক উত্তর! ✅";
+  } else {
+    $("status").textContent =
+      "ভুল উত্তর। সঠিক উত্তর: " + item.a[item.c];
+  }
 
-    $("again").addEventListener("click", () => {
-      $("result").hidden = true;
-      $("home").hidden = false;
-      $("player").value = name;
-    });
-  </script>
+  $("next").hidden = false;
+  $("next").textContent =
+    index === quizQuestions.length - 1
+      ? "ফলাফল দেখো"
+      : "পরের প্রশ্ন";
+}
+
+$("next").addEventListener("click", () => {
+  if (!answered) return;
+
+  index++;
+
+  if (index < quizQuestions.length) {
+    showQuestion();
+    return;
+  }
+
+  $("game").hidden = true;
+  $("result").hidden = false;
+
+  $("score").textContent =
+    name + ", তোমার নম্বর " + points +
+    " / " + quizQuestions.length;
+
+  const percent = Math.round(
+    points / quizQuestions.length * 100
+  );
+
+  $("message").textContent =
+    percent === 100
+      ? "অসাধারণ! সব উত্তর সঠিক! 🏆"
+      : percent >= 60
+        ? "ভালো চেষ্টা! আরও অনুশীলন করো।"
+        : "চেষ্টা চালিয়ে যাও, তুমি আরও ভালো করবে!";
+});
+
+$("again").addEventListener("click", () => {
+  $("result").hidden = true;
+  $("home").hidden = false;
+  $("player").value = name;
+});
+</script>
 </body>
 </html>
-
